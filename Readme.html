@@ -1,0 +1,366 @@
+<html>
+	<head>
+		<style>
+			table, th, td {
+				border: 1px solid black;
+				border-collapse: collapse;
+			}
+		</style>
+	</head>
+<body>
+<h1><center>Enemy HP meter</center></h1>
+<h4><center>By <a href="https://www.smwcentral.net/?p=profile&id=18802">GreenHammerBro</a></center></h2><br><br>
+
+This ASM code displays enemies' HP meter (as numerical and/or a bar) when they take damage on the status bar (heads-up display (HUD)). This is
+similar to <i>Kirby & The Amazing Mirror</i>. The main differences is that:
+<ul>
+<li>The HP bar doesn't do a gradual slide when they take damage, this happens on the above mentioned game and <i>Kirby and the Rainbow Curse</i>.
+Instead, a damage section will be indicated as a &ldquo;pseudo-transparent&rdquo; briefly. Then that transparent section slides down to the
+current health. To have that effect, <a name="KAMHPSlideTop" href="#KAMHPSlide">click here</a>.</li><br>
+<li>Touching enemies will not display the health meter, in <i>Kirby & The Amazing Mirror</i>, it is possible to make it show its health bar
+without damaging the enemy by having Stone Kirby in his stone form not moving and an enemy passes by.</li>
+</ul>
+
+Only the chucks family are the non-boss enemies of smw, thus they are the only one that you can have HP being displayed on such sprites.
+<hr>
+<h2>What you need:</h2>
+<ul>
+<li><a href="https://www.smwcentral.net/?p=section&a=details&id=17109"><i>Lunar Magic</i></a>, because why not?</li><br>
+<li><a href="https://www.smwcentral.net/?p=section&a=details&id=14560"><i>Asar</i></a>, a patching tool.</li><br>
+<li>Any Status bar patches, in this tutorial, I assume you would use the <a href="https://www.smwcentral.net/?p=section&a=details&id=16031"><i>Super
+Status bar</i></a> patch (due to enabling more 8x8 tile spaces available) without the need of removing counters. Do note that if you are using a
+status bar format that have 1 byte/8x8 placed next to another (<tt>&lt;Tile number&gt;, &lt;Tile number&gt;...</tt> in that format, not
+<tt>&lt;Tile number&gt;, &lt;Tile properties&gt; (and repeats)</tt>), you set
+<tt>!StatusBarFormat</tt> to <tt>$01</tt> in <tt>GraphicalBarDefines.asm</tt>. Of course, it is possible to use this code for vanilla SMW status bar, but
+you definitely have to remove some counters to make room.</li><br>
+<li><a href="https://www.smwcentral.net/?p=section&a=details&id=16540"><i>UberASMTool</i></a>, because there are codes that are needed to be executed
+every frame. Of course, I could've hijack a code that executes every frame (as a standalone patch), I usually prefer sticking to uberasm tool
+to reduce the amount of hijacks. Relying on finding codes that run every frame increases the risk of incompatibility with other patches.</li><br>
+<li><a href="https://www.smwcentral.net/?p=section&a=details&id=4611"><i>Slogger</i></a>, because this package use &ldquo;dummy JSL&rdquo;s (a JSL
+jumps to a fixed address location containing a JML address which then jumps to a freespace (varying location) which contains the actual subroutine)
+to avoid having to update your subroutine address every time you patch this code in.</li>
+</ul>
+<h3>Recommended but not required</h3>
+<ul>
+<li>Any custom sprite insertion tool, to this date: <a href="https://www.smwcentral.net/?p=section&a=details&id=16731"><i>Pixi</i></a> by JackTheSpades.
+Be aware that the test sprite included in this package may not be compatible and/or not optimized because this package was developed before the new sprite
+tool hit the scene (it was previously made for <a href="https://www.smwcentral.net/?p=section&a=details&id=14583"><i>Romi's Spritetool</i></a>).</li>
+</ul>
+
+The links above should redirect you to the latest version should those items get updated. If they were to be removed (like &ldquo;File not found&rdquo;),
+it's probably due to a superior tool under a different name to replace the outdated tool.
+<hr>
+<h2>How to insert:</h2>
+<ol>
+<li>Make any changes necessary on the defines, including freeram (and make sure you check them) as they do consume a lot of data. It's located on
+<tt>EnemyHPDefines</tt> folder. If you're using the SA-1 patch in your ROM, use the second RAM address duplicates under the <tt>else</tt> statement of
+<tt>if !sa1 == 0</tt>. Anytime you make changes again to these defines file, make sure you update your existing copies of it and reinsert the asm codes
+that uses it to keep them up to date.<br><br>
+
+Inside <tt>EnemyHP.asm</tt>, in the defines folder, you find a ROM address defined as <tt>!Addr_DummyJSLs</tt>, set that address to any unused freespace addresses
+that are at least <nobr><tt>12+(!Setting_SpriteHP_BarAnimation*4)</tt></nobr> (where !Setting_SpriteHP_BarAnimation is either 0 or 1, the numbers you used to set it
+to) bytes large (each JML takes 4 bytes). Use slogger to find freespace for you. What contains here is code that can be accessed using dummy JSLs. The reason is
+that you don't have to change your JSL location every time you patch <tt>EnemyHPMeter.asm</tt> as freespace code themselves gets moved around when asar tries to find
+a large-enough space to place in since you JSL directly to a freespace.<br><br>
+
+Two define files are not necessary to be edited:
+<ul>
+<li><tt>SA1_SpriteDefines.asm</tt>: SA-1 sprite tables.</li>
+<li><tt>Sa1_Detect.asm</tt>: sa-1 addressing handling.</li>
+</ul><br>
+
+Anytime you make changes to the defines (and insert the main patch to the game) and have copies of them (which you will, since it uses uberasm and possibly on custom
+sprites), make sure you update the copies as well so they're up-to date, else glitches can happen, then re-install them.</li>
+<br>
+<li>Patch <tt>EnemyHPMeter.asm</tt> into your game. During patching, I've included some notes that are displayed on the Asar console window,
+they include RAM address, and subroutine locations. You may want to keep note of that (you can copy text on the window by simply clicking on
+the top-left corner icon of the window (opens a dropdown menu), edit and mark or copy, but most likely is if you're using windows 10+, it may
+allow you to select text without going to the top-left icon menu)</li><br>
+
+<li>uberasm tool:
+<ol>
+<br>
+<li>Copy the folder <tt>EnemyHPDefines</tt> and paste it in the same directory as <tt>UberASMTool.exe</tt> located.</li><br>
+<li>Files you (copy and/cut then) paste them in:
+<table><tr><td><pre>GM14.asm                -> gamemode
+GM10.asm                -> gamemode
+EnemyHPDefines (folder) -> UberASMTool's main directory.</pre></td></tr></table></li><br>
+<li>Edit list.txt:
+<table><tr><td><pre>gamemode:
+	14 GM14.asm
+	10 GM10.asm</pre></td></tr></table></li><br>
+</li>
+<li>Now run uberasm tool <tt>.exe</tt> file to insert code into your game.</li>
+</ol><br>
+
+<li>Graphics:</li><br>
+<ol>
+<li>Paste <tt>ExGFX80.bin</tt> in your <tt>Exgraphics</tt> folder of your ROM (extract ExGFX if it doesn't exist), rename if
+needed (must be 80 or higher), and then insert them in Lunar Magic.</li><br>
+<li>On the green poison mushroom of Lunar Magic (&ldquo;Layer 3 GFX/Tilemap Bypass&rdquo;), open that window and on &ldquo;LG1&rdquo;
+(the first dropdown list), set the GFX number to the number you rename it to. This will insert the bar tile graphic for your game.</li>
+</ol><br>
+<li>And now, you are done.</li>
+</ol>
+<hr>
+<h2>Notes:</h2>
+<ul>
+<li>Obviously, this package uses the graphical bar routine. <a href="Graphical bar info/Readme.html" target="_blank">Click here</a> for more info.</li><br>
+<li>RAM address info. Remember that how indexing works, 0 is included, so a sprite table of slots includes the beginning byte, and the 11 other
+bytes for the rest (so 0-11 NOT 1-12), highlighted in red is RAM address you can disable (no longer use any RAM) to save memory.
+<table>
+<tr>
+<th>Freeram Define</th>
+<th>Bytes used (Normal ROM/ SA-1 ROM).</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><tt>!Freeram_SprHPCurrSlot</tt></td>
+<td><center>1/1</center></td>
+<td>The sprite slot number the health meter is selecting on. <tt>#$FF</tt> = not selecting any sprite (health meter not displaying)</td>
+</tr>
+<tr>
+<td><tt>!Freeram_SprTbl_CurrHPLow</tt></td>
+<td><center>12/22</center></td>
+<td>Sprite's current HP, low byte.</td>
+</tr>
+<tr style="background-color:#FFA07A;">
+<td><tt>!Freeram_SprTbl_CurrHPHi</tt></td>
+<td><center>12/22</center></td>
+<td>Sprite's current HP, high byte. Disabled by setting <tt>!Setting_SpriteHP_TwoByteHP</tt> to <tt>0</tt>.</td>
+</tr>
+<tr>
+<td><tt>!Freeram_SprTbl_MaxHPLow</tt></td>
+<td><center>12/22</center></td>
+<td>Sprite's max HP, low byte.</td>
+</tr>
+<tr style="background-color:#FFA07A;">
+<td><tt>!Freeram_SprTbl_MaxHPHi</tt></td>
+<td><center>12/22</center></td>
+<td>Sprite's max HP, high byte. Disabled by setting <tt>!Setting_SpriteHP_TwoByteHP</tt> to <tt>0</tt>.</td>
+</tr>
+<tr style="background-color:#FFA07A;">
+<td><tt>!Freeram_SprTbl_RecordEfft</tt></td>
+<td><center>12/22</center></td>
+<td>Sprite health bar's record effect, this includes both the filling animation (boss intro-style) and the transparent effect when sprite takes damage.
+Disabled by setting <tt>!Setting_SpriteHP_BarAnimation</tt> to <tt>0</tt>.</td>
+</tr>
+<tr style="background-color:#FFA07A;">
+<td><tt>!Freeram_SprTbl_RecordEffTmr</tt></td>
+<td><center>12/22</center></td>
+<td>Sprite health bar's record effect delay, before the damage indicator shrinks to the current HP.
+Can be disabled by setting <tt>!EnemyHPBarRecordDelay</tt> and/or <tt>!Setting_SpriteHP_BarAnimation</tt> to <tt>0</tt></td>
+</tr>
+</table><br>
+
+Other Freeram stuff (you can reuse scratch RAM for other functions to save space):
+<table>
+<tr>
+<th>Freeram/scratch RAM</th>
+<th>Bytes used</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><tt>!Scratchram_GraphicalBar_LeftEndPiece</tt></td>
+<td><center>1</center></td>
+<td>Scratch RAM used for graphical bar. This is how many pieces on the left end.</td>
+</tr>
+<tr>
+<td><tt>!Scratchram_GraphicalBar_MiddlePiece</tt></td>
+<td><center>1</center></td>
+<td>Scratch RAM used for graphical bar. This is how many pieces on each middle byte or 8x8 tile.</td>
+</tr>
+<tr>
+<td><tt>!Scratchram_GraphicalBar_RightEndPiece</tt></td>
+<td><center>1</center></td>
+<td>Scratch RAM used for graphical bar. This is how many pieces on the right end.</td>
+</tr>
+<tr>
+<td><tt>!Scratchram_GraphicalBar_FillByteTbl</tt></td>
+<td><center>&ge;4</center></center></td>
+<td>Scratch RAM used for graphical bar. This is used as finding the quantity (<tt>address+0</tt>) and max quantity
+(<tt>address+2</tt>), both 16-bits, when used for <tt>CalculateGraphicalBarPercentage</tt>. It is also used as
+an output (as a table) when using <tt>DrawGraphicalBar</tt>. The amount of bytes used depends on how long you set
+the bar to (as number of middle bytes or 8x8s), plus each end tiles if they exist</td>
+</tr>
+<tr>
+<td><tt>!Scratchram_GraphicalBar_TempLength</tt></td>
+<td><center>1</center></center></td>
+<td>Scratch RAM used for graphical bar. This is how long the bar is as number of 8x8 bytes/tiles excluding the
+left and right end</td>
+</tr>
+<tr style="background-color:#FFA07A;">
+<td><tt>Scratchram_CharacterTileTable</tt></td>
+<td><center>?</center></td>
+<td>A digit character string table, used when set to be left or right aligned to remove leading 0 or spaces. Not used
+when any of the following:
+<ul>
+<li><tt>Setting_EnemyHPAlignDigits</tt> and/or <tt>!Setting_SpriteHP_DisplayNumerical</tt> is set to <tt>0</tt>
+(not to display any digits).</li>
+
+<li><tt>Setting_EnemyHPAlignDigits</tt> to <tt>2</tt> (right-aligned) and <tt>!Setting_SpriteHP_DisplayNumerical</tt>
+to <tt>1</tt> (number only shows current HP) because digits by default are already right-aligned.</li>
+</ul><br>
+Number of bytes used:
+<br>
+<br>
+<table><tr><td><pre>BytesTaken = !Setting_EnemyHPMaxDigits + MaxDisplay
+
+Where &ldquo;MaxDisplay&rdquo; is !Setting_EnemyHPMaxDigits+1 when !Setting_SpriteHP_DisplayNumerical
+is set to 2 and 0 otherwise.
+</pre></td></tr></table>
+Therefore, if there are 5 digits at max, and also displays the maximum HP, it would be <tt>11 = 5+5+1</tt>
+and therefore 11 bytes are used.<br><br>
+
+By default, since this is scratch (temporally storage) RAM, it reuses the same address as <tt>!Scratchram_GraphicalBar_FillByteTbl</tt>.</td>
+</tr>
+</table>
+</li><br>
+<li>Rarely, the HP bar doesn't appear on the initial start of the boss fight on smw bosses (even in the
+included code in GM14.asm). Some of these bosses don't have an init, therefore you need to have an uberasm
+code that will write the sprite's slot index number to !Freeram_SprHPCurrSlot. But often, in a chocolate
+hack, its rare that hackers would EVER use the old smw bosses. Here is the uberasm code that checks if the
+slot number is the boss's slot:
+<table><tr><td><pre>	.FindBossSlot
+	LDX.b #!SpriteSlot-1	;>!SpriteSlot = 12 for normal, = 22 for SA-1
+
+	..Loop
+	LDA !7FAB10,x		;\If sprite is custom, skip that slot
+	AND #$08		;|
+	BNE ...Next		;/
+	LDA !9E,x		;>Sprite number
+	CMP #$C5		;\Big boo boss
+	BEQ ..SetSprHPBar	;/
+	CMP #$29		;\Koopa kid (koopalings)
+	BEQ ..SetSprHPBar	;/
+
+	...Next
+	DEX
+	BPL ..Loop
+	[...]			;>If no sprites found, do not set the slot number.
+
+
+	..SetSprHPBar
+	TXA				;\Set the HP bar to the sprite's slot number that's the boss.
+	STA !Freeram_SprHPCurrSlot	;/</pre></td></tr></table></li><br>
+	
+I recommend putting this on <tt>LEVEL</tt> as <tt>MAIN</tt> rather than gamemode init. This is because every time the
+level loads on blackness, it sets !Freeram_SprHPCurrSlot to #$FF (not show) on level init. If you're not
+using any smw bosses (excluding custom sprite disassembly), feel free to remove the code that handles bosses.</li><br><br>
+
+<li>All bosses and chucks in the original SMW's &ldquo;HP&rdquo; system is actually a damage counter rather than
+HP, meaning when they take damage, this number increases by 1. If it reaches to a certain number like
+3, 5 (fireballs for chucks) or 12 (fireball for Ludwig, Morton, and Roy), they get defeated.</li><br>
+
+<li>5 fireballs to kill (<tt>$190F,x</tt>, which increments <tt>$1528,x</tt> by 1) have been/has modded to work with the chargin' chuck's health system, however,
+having a sprite with a tweaker that enables the 5 fireball kill recycles that code, therefore, be careful to
+prevent inconsistent damage (or have to have the same amount of HP the chucks have). If you don't want that, you have
+to disable the chuck's health meter by opening up <tt>EnemyHPMeter.asm</tt> and set <tt>!ShowHPOnChuck</tt> to 0. But
+if you wanted a chuck to display HP without using the 5 fireballs, download them (a disassembly) from the sprites section,
+and edit BOTH its code (such as making it take manual damage via contact by a fireball via contact check) and tweaker
+(to disable the 5 fireballs kill and interaction with other sprites that would instantly kill them).</li><br>
+
+<li>Health meter display only works with regular sprites (smw sprites (smw bosses and chargin chuck) or custom sprites), they
+do not work with cluster, extended, generators, etc.</li><br>
+
+<li>Be careful not to have too many stomps to kill Roy, because each stomp causes the arena walls to close in
+without limits. Therefore, it is possible to make them crush the player (without dying) or even go past each
+other and Roy teleporting when switching between ceiling and wall.</li><br>
+
+<li>The 8x8 space the health meter (both the numbers and the bar) written on the status bar is <b>ALWAYS used</b> for every frame.
+So unless you can make it stop writing tiles there (found at label <tt>.HideHPMeter</tt> in <tt>EnemyHPMeter.asm</tt> via a conditional
+branching), avoid putting counters and other display on that spot. The amount of tiles consumed can be changed by either changing
+the length, and/or end parts of the bar (<tt>!Default_MiddleLength</tt>, <tt>!Default_LeftPieces</tt> and <tt>!Default_RightPieces</tt>
+in <tt>GraphicalBarDefines.asm</tt>), as well as changing it displays the numbers and the maximum digits to be written to
+(<tt>!Setting_SpriteHP_DisplayNumerical</tt> and <tt>!Setting_EnemyHPMaxDigits</tt> in <tt>EnemyHP.asm</tt> defines file).
+If you're unsure about the space taken, set <tt>!EnemyHPBlankTile</tt> to a tile number that doesn't camouflage with other 8x8 tiles
+never used (other than a blank tile <tt>$FC</tt>).</li><br>
+
+<li>Be very careful that if a sprite gets deleted ($14C8,x set to #$00, no death animation) and a new sprite
+spawns taking the same slot as (or replaces) the deleted sprite within the same frame, the HP meter may get
+transferred to that replaced sprite of the slot. So if your sprite deletes itself, find a code where it
+STZs $14C8 and after that, write #$FF to !Freeram_SprHPCurrSlot (LDA #$FF : STA !Freeram_SprHPCurrSlot,x)
+to &ldquo;clear&rdquo; the HP bar. This happens by:<br><br>
+<ul>
+<li>Sprite intends to die by having $14C8,x = #$00, then spawns a sprite on the same slot as the dying sprite.</li><br>
+<ul>
+<li>If your sprite &ldquo;multiply&rdquo; (1 sprite becomes 2 sprites) the HP bar could transfer to the original sprite
+or the newly spawn sprite.</li><br>
+</ul>
+</ul>
+Both of these can happen if all the higher slot numbers are used up, for example on dying sprite on slot 9
+while it dies, spawns another sprite afterwards, when 10-11 are used up. (The spawn sprite checks for open
+slot starting at the highest).
+
+Or even easier, if you're lazy, put this at or near the end of the sprite code (runs every frame during a
+sprite code):
+
+<table><tr><td><pre>	LDA !14C8,x			;\If sprite isn't free slot, don't remove the HP bar
+	BNE +				;/
+	LDA #$FF			;\If free slot, make HP bar disappear
+	STA Freeram_SprHPCurrSlot 	;/
+	+
+	RTS				;>May be RTS or RTL depending on if JSR or JSL.</pre></td></tr></table>
+I know this already exist in &ldquo;SubrAddr_DisplayHP&rdquo; of the patch, but because the game runs all sprite slots
+as a group and after/before that (not sure if uberasm gamemode runs before or after the sprite's main
+routine), runs the uberasm code, it has a potential of &ldquo;misreading&rdquo; $14C8 since it was &ldquo;revived&rdquo;.
+</li><br>
+
+<li>If you notice inside the code that handles with chargin chucks and bosses (that uses the HP system),
+after each CLC : ADCs, there is a <tt>BCS .CapDamage</tt> even though the following code checks if the damage
+reaches a certain value. Well, let me tell you this, smw's HP system is 1 byte large, meaning valid values
+are 0-255. By having the damage large enough to bypass 255, the counter will overflow to 0, causing the
+code to assume the boss's total damage was low (and no death, the carry bit is set when ADC wraps from $FF
+to #$00). This overflow can happen more easily if you have the killing damage value close to 255 and takes
+more than 1 damage per hit (such as taking 2 damage when its &ldquo;max health&rdquo; is 255)</li><br>
+
+<li><a name="KAMHPSlide" href="#KAMHPSlideTop">^</a>To have the HP bar sliding animation when taking damage, open <tt>EnemyHP.asm</tt> and
+change these defines to these values:
+<table><tr><td><pre>!DisplayNumerical			= 0	;>optional
+!Setting_SpriteHP_BarAnimation		= 1	;>so it doesn't instant-update
+!EnemyHPBarFillDrainSpd			= $00	;>bar slides down quickly
+!EnemyHPBarRecordDelay			= 0	;>KAM's HP bar doesn't pause before sliding
+!EnemyHPBarTransperentEfft		= 0	;>there is no damage section displayed</pre></td></tr></table> 
+</li><br>
+<li>If you've come across defines not being defined (like &ldquo;<tt>!Freeram_SprTbl_RecordEfft not defined</tt>&rdquo;, most
+likely is that you use a RAM/routine that is disabled). You wouldn't write to freeram or use a routine that you have disabled.</li>
+<br>
+<li>Because this pack does include some routines that you're likely to use for non-enemy HP meter related (for example: graphical bar also
+used for player HP meter), you can simply move those routines to &ldquo;Shared Subroutines&rdquo; patch and edit the JSLs to jump to a
+newly define contained (make sure you include Shared Subroutines' defines by using <tt>incsrc &lt;path&gt;</tt> to the defines in shared
+subroutines as well, and be careful of duplicates defines that mean different things). The routine &ldquo;names&rdquo; (more like labels)
+that you're likely to use is presented in the main patch <tt>EnemyHPMeter.asm</tt> at the top.</li><br>
+
+<li>Feel free to move the dummy JSL to the shared subroutines patch (and don't forget to include the define files) to keep your things
+organized.</li>
+</ul>
+<hr>
+<h2>Troubleshooting</h2>
+<ul>
+<li>Q: &ldquo;When the HP meter appears, instead of numbers displaying, it display &ldquo;<tt>-</tt>&rdquo; across the line!&rdquo;<br>
+A: Thats intended as an indication that the number of digits displayed is more than the number of digits defined as <tt>!Setting_EnemyHPMaxDigits</tt>
+inside <tt>EnemyHPDefines/EnemyHP.asm</tt>. This is due to a bug when used with aligned digits, the 8x8 tiles at invalid areas could be
+overwritten when there are too many digits to write, or that the number is displayed incorrectly with some of its digits omitted and looks
+valid. You can turn this off by setting <tt>!Setting_EnemyHP_ExcessDigitProt</tt> to <tt>0</tt> to save space (best to do this after making final
+changes of your game before you upload your hack to smwc for debugging purposes).</li><br>
+
+<li>Q: &ldquo;For some reason, when I attack an enemy, it's HP doesn't go down!&rdquo;<br>
+A: You probably have set the sprite's HP value above the maximum (easy to spot if you made it display HP as numbers), you forgot
+to make the damage actually subtract HP (done by using <tt>JSL !DummyJSL_EnemyHP_LoseHP</tt>.), or you didn't properly convert the sprite's own
+built-in HP (sprites that already have HP implemented in them) to the values stored here. See a link to a tutorial at the bottom of this page under
+&ldquo;Main Routine&rdquo; where it mentions &ldquo;different ways of knowing how much HP they have&rdquo; to convert.<br><br>
+
+Keep in mind that when the graphical bar have less pieces (shorter bar and/or less pieces per 8x8) and/or having large HP values with taking little
+damage, the bar cannot display smaller increments, and therefore rounds the percentage to the nearest integer of pieces (example: 4.5 pieces would
+round to 5 pieces). Thus, without displaying the numbers, it could look like the enemy/boss is taking 0% damage, while actually taking percent
+damage <i>less</i> than a full piece.</li><br>
+
+<li>For other issues, talk on SMWC forums.</li>
+
+</ul>
+<hr>
+<h2>Programming with custom sprites</h2>
+<a name="CustomSpriteHPTutorial" href="Readme_files/CustomSpriteHPTutorial.html">Click here</a> to get you started on how to
+make custom sprites use this health system. You mainly have to edit the RAM sprite table that is used for &ldquo;damage
+counter&rdquo;, actual HP, and many other things.
+<br><br>

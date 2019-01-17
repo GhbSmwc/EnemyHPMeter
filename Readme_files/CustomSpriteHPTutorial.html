@@ -1,0 +1,288 @@
+<html>
+	<head>
+		<style>
+			table, th, td {
+				border: 1px solid black;
+				border-collapse: collapse;
+			}
+		</style>
+	</head>
+<body>
+<a href="../Readme.html#CustomSpriteHPTutorial">Back</a><br>
+<h1><center>Programming custom sprites to use the HP meter</center></h1><br><br>
+
+This tutorial covers on making custom sprites use the HP system. You must have at least some ASM knowledge
+on how to do this. Before you do anything, make sure that your sprite does not use tweaker for other sprite
+interaction (if you don't want your enemy to die instantly from kicked shells or bounce blocks, as well as fireball
+overriding the way the sprite take damage) by having $1686's bit 3 being set. NOTE: this only covers using
+pixi and not romi's spritetool, since SMWC is renovating the sprite section to use the new tool.<br>
+
+<h2>Table of Contents</h2>
+<ol>
+<li><a name="TOC_Defines" href="#Defines">Defines</li>
+<li><a name="TOC_CustSpriteInitialization" href="#CustSpriteInitialization">Sprite Initialization</a></li>
+<ol>
+<li><a name="TOC_BossIntro" href="#BossIntro">Boss introduction</a></li>
+<li><a name="TOC_BossIntroCutscene" href="#BossIntroCutscene">Boss introduction after a cutscene</a></li>
+</ol>
+<li><a name="TOC_MainRoutine" href="#MainRoutine">Main routine</a></li>
+<li><a name="TOC_Misc" href="#Misc">Miscellaneous stuff</a></li>
+<ol><li><a name="TOC_Heal" href="#Heal">healing</a></li></ol>
+</ol>
+
+<h2><a name="Defines" href="#TOC_Defines">^</a>Defines</h2>
+The first thing you should do is copy the folder <tt>EnemyHPDefines</tt> and paste it in the NORMAL
+sprite folder for sprites to get info on what RAM to use for HP-related code as well as subroutine
+addresses. Then on any sprite to use it, use this so that the inserter gets info for the values:
+(This is where you define your RAM addresses and subroutine for the sprite to use the patch's system.):
+<table><tr><td><pre>
+	;This stuff was here due to pixi have the SA-1 values in defines being renamed, so a transfer
+	;was needed:
+	!sa1 = !SA1		;>case sensitive.
+	!sprite_slots = !SprSize
+
+	incsrc "EnemyHPDefines/EnemyHP.asm"
+	incsrc "EnemyHPDefines/GraphicalBarDefines.asm"
+
+	;[...]
+	;This is just template, some of them aren't mandatory.
+	!HPToStart		= 100		;>Decimal, amount of HP the enemy has.
+	!StompDamage		= 5		;>Decimal, amount of damage from stomping.
+	!FireballDmg		= 3		;>Decimal, amount of damage from player's fireball.
+	!YoshiFireball		= 10		;>Decimal, amount of damage from yoshi's fireball.
+	!BounceDamage		= 1		;>Decimal, amount of damage from bounce blocks.
+	!CarryableKickedSpr	= 6		;>Decimal, amount of damage from other sprites (shell, for example)
+	!CapeSpinDamage		= 4		;>Decimal, amount of damage from cape spin.</pre></td></tr></table></li><br>
+
+Be aware that when using Romi's Spritetool, it takes the relative file path from the .exe file itself, rather than
+from the ASM file itself on the <tt>incsrc</tt>. Therefore, &ldquo;pre-pend&ldquo; <tt>sprites/</tt> to workaround
+this odd feature. Another thing to note is that if you reinsert the enemy HP patch with the defines changed, you
+must update all the existing copies to make sure they use up-to-date defines and not glitch out.
+<h2><a name="CustSpriteInitialization" href="#TOC_CustSpriteInitialization">^</a>Sprite Initialization</h2>
+Now that is taken care of, now onto the HP code to be used, this makes the enemy start out as
+full HP when they are spawned.
+<table><tr><td><pre>	.StartWithFullHP
+	LDA.b #!HPToStart		;\Full HP (low byte)
+	STA !Freeram_SprTbl_CurrHPLow,x	;|
+	STA !Freeram_SprTbl_MaxHPLow,x	;/
+	if !Setting_SpriteHP_TwoByteHP != 0
+		LDA.b #!HPToStart>>8		;\Full HP (High byte)
+		STA !Freeram_SprTbl_CurrHPHi,x	;|
+		STA !Freeram_SprTbl_MaxHPHi,x	;/
+	endif</pre></td></tr></table><br>
+<h3><a name="BossIntro" href="#TOC_BossIntro">^</a>Boss introduction</h3>
+Display boss HP meter automatically:<br>
+<table><tr><td><pre>	TXA					;\Switch HP bar
+	STA !Freeram_SprHPCurrSlot		;/
+	if !Setting_SpriteHP_BarAnimation != 0
+		LDA #$00				;\Make bar record empty (does a filling up animation)
+		STA !Freeram_SprTbl_RecordEfft,x	;/
+	endif</pre></td></tr></table></li><br>
+Note that the amount of fill have 2 values stored; one is the amount of HP as percentage, while the other is called <i>record effect</i>.
+When record effect is below the sprite's HP percentage, the bar fills up (with sound effects (which can be turned off via settings in the
+define)) to where the sprite's HP percentage is at, if it's over, it will display a &ldquo;transparent&rdquo; segment between the two values briefly,
+then shrinks (a damage indicator).
+<h3><a name="BossIntroCutscene" href="#TOC_BossIntroCutscene">^</a>Boss introduction after a cutscene</h3>
+If your boss have a cutscene or message box just before the fight, and wanted
+to intro its HP bar (starts empty and fills up) instead of filling up immediately the boss appears or
+level load, you might want to move that to the main routine, as the init
+routine runs only once the sprite appears, and use the &ldquo;sprite state&rdquo; to not
+make it run every frame (else HP bar will appear, but appears empty constantly):
+<table><tr><td><pre>	PHX				;>Save sprite index
+	LDA !SPRITE_STATE,x		;>Get value of sprite state (this RAM address is often $C2,x)
+	ASL				;>Times 2 because each address have 2 bytes
+	TAX				;>Make it in index
+	BCS .LargeTable			;>If leftmost set bit were to get cut off on the final bit, go to seperate table
+	JMP.w (States,x)		;>Jump to different locations based on state value
+
+	.LargeTbl
+	JMP.w (States+256,x)		;>Pick table (larger size)
+
+	States:
+	dw BringMessageBox		;>$00
+	dw WaitMessageBox		;>$01
+	dw StartHPBar			;>$02
+	dw MainFight			;>$03
+	;[...]
+
+	BringMessageBox: ;>$00
+	PLX				;>Restore X
+	LDA #$01			;\Bring message box
+	STA $1426			;/
+	INC !SPRITE_STATE,x		;>Switch sprite state (don't constantly bring messages after closing)
+	RTS
+
+	WaitMessageBox: ;$01
+	PLX
+	LDA $1B89			;\If message box not closed all the way,
+	BNE .NotClosecompletely		;/don't switch state until its size is #$00
+	INC !SPRITE_STATE,x		;>If message box gone, switch state
+
+	.NotClosecompletely
+	RTS
+
+	StartHPBar: ;$02
+	PLX					;>Restore X
+	TXA					;\Switch HP bar
+	STA !Freeram_SprHPCurrSlot		;/
+	if !Setting_SpriteHP_BarAnimation != 0
+		LDA #$00				;\Start out as empty, and filling up
+		STA !Freeram_SprTbl_RecordEfft,x	;/
+	endif
+	INC !SPRITE_STATE,x			;>Switch sprite state (Don't execute again, only single frame).
+	RTS
+
+	MainFight: ;$03
+	PLX
+	;[...]</pre></td></tr></table><br>
+<h2><a name="MainRoutine" href="#TOC_MainRoutine">^</a>Main Routine</h2>
+Remove record effect when sprite isn't selected (this MUST run every frame without being under any condition
+unless the sprite dies):
+<table><tr><td><pre>	if !Setting_SpriteHP_BarAnimation != 0
+		.RemoveRecordWhenSwitchingHPs
+		TXA					;>transfer sprite index to X
+		CMP !Freeram_SprHPCurrSlot		;>Compare with the slot the HP bar is using
+		BEQ ..ItsOnThisSprite			;>If HP bar is on this current sprite, don't delete record
+		JSL !DummyJSL_EnemyHP_GetPercentHP	;>Get current percent HP
+		LDA $00					;\Remove Record effect (make record value equal to current HP%)
+		STA !Freeram_SprTbl_RecordEfft,x	;/
+		
+		..ItsOnThisSprite
+	endif</pre></td></tr></table><br>
+Basically, this is to prevent the record amount to hang when the HP meter moves to another sprite slot.
+(for example, If mario damage sprite A, then damages sprite B, sprite A's meter is suspended, and continues
+from where it is from the first damage instead of the last, which you don't want).<br><br>
+
+Take damage (stomping):
+<table><tr><td><pre>	.TakeStompDamage
+	REP #$20
+	LDA.b #!StompDamage		;\Write damage
+	STA $00				;/
+	SEP #$20
+	JSL !DummyJSL_EnemyHP_LoseHP	;>Subtract HP.
+	LDA !Freeram_SprTbl_CurrHPLow,x		;\check if HP is 0.
+	if !Setting_SpriteHP_TwoByteHP != 0	
+		ORA !Freeram_SprTbl_CurrHPHi,x	;|
+	endif
+	BEQ .Death				;/
+
+	.Alive
+	;[...]
+	.Death
+	;[...]</pre></td></tr></table><br>
+
+Do note that some sprites have different ways of knowing how much HP they have (such as miscellaneous
+sprite tables) in different formats. This would not work since they do not directly use the RAM this
+patch uses to display HP. You need to convert the value and store it into <tt>!Freeram_SprTbl_CurrHPLow</tt>,
+<tt>!Freeram_SprTbl_CurrHPHi</tt>, <tt>!Freeram_SprTbl_MaxHPLow</tt>, and <tt>!Freeram_SprTbl_MaxHPHi</tt> so that the patch
+will know how much HP the sprite has. Here are some of the cases:<br>
+<ul>
+<li>If a sprite uses a damage counter rather than HP
+(increments from 0, and when hits a certain number, defeats the sprite), you would use this code to
+convert damage count to HP:
+
+<table><tr><td><pre>	LDA.b #!HPToStart		;\Set max HP (the KillingValue)
+	STA !Freeram_SprTbl_MaxHPLow,x	;/
+	SEC				;\RemainingHitsLeft = KillingValue - TotalDamageTaken
+	SBC !HitCounterSprTbl,x		;/
+	STA !Freeram_SprTbl_CurrHPLow,x	;>And display HP correctly
+	if !Setting_SpriteHP_TwoByteHP != 0
+		LDA #$00			;\Rid high bytes.
+		STA !Freeram_SprTbl_CurrHPHi,x	;|
+		STA !Freeram_SprTbl_MaxHPHi,x	;/
+	endif
+	if !EnemyHPBarRecordDelay != 0 ;>if you were to disable the delay effect, following code is ommited
+		LDA.b #!EnemyHPBarRecordDelay		;\freeze record effect
+		STA !Freeram_SprTbl_RecordEffTmr,x	;/
+	endif</pre></td></tr></table><br>
+Or change the init to set it to a non-zero value (its starting HP), and set the damage routine to DEC
+(or SEC : SBC) to reverse the direction the counter works (not great for "phases" unless if you modify
+that as well).</li><br>
+
+<li>If the sprite uses a simple byte that counts down, just simply store that value into the patch's RAM
+since its in the same format, just at a different RAM. Or even better, replace all of the RAM used as
+HP with the patch's and clear the high byte of the HP value (both max and current, if you were to have the
+high bytes enabled).</li>
+</ul>
+For contact with hitboxes with other things to affect HP, look in <tt>simple_sprite.asm</tt>
+and on the ASM file shows the code on how to get interaction. They are labeled for convenience. This
+is for if you are creating a sprite from scratch.<br><br>
+Note: Yes, I could've use tweaker for interaction with other sprites. However, the tweaker have
+hard-coded programming that overrides the behavor of the sprites, and could cause incompatibility
+on it; things like 5 fireballs to kill and interaction with other sprites that would've instantly kill
+the sprite.
+<h2><a name="Misc" href="#TOC_Misc">^</a>Miscellaneous Stuff</h2>
+Mainly this is optional, just some content for special bosses.
+<h3><a name="Heal" href="#TOC_Heal">^</a>Healing</h3>
+The patch and uberasm itself <b>does not</b> check if the sprite's HP is above max HP every frame (to save some cycles),
+therefore have this code to have capped healing:
+<table><tr><td><pre>	JSL Heal ;>call healing routine
+	;[...]
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;Capped healing routine.
+;
+;Input:
+;-$00-$01 is the amount of HP recovered. Only $00
+; would be used should two-byte HP was set to 1
+; byte.
+;Output:
+;-Sprite's current HP recovered, capped at max.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Heal:
+	.StoreHealedValue
+	if !Setting_SpriteHP_TwoByteHP != 0 ;>maths are different depending if you wanted 2-byte HP or not.
+		LDA !Freeram_SprTbl_CurrHPLow,x		;\low byte
+		CLC					;|
+		ADC $00					;|>ADC sets carry if unsigned overflow happens
+		STA $00					;/
+		LDA !Freeram_SprTbl_CurrHPHi,x		;\high byte
+		ADC $01					;|>ADC adds an additional 1 when overflowed
+		STA $01					;/
+		BCS .Maxed				;>if exceeds 65535
+
+		.CompareWithMaxHP
+		LDA $00					;\CMP is like SBC, should underflow happens, carry is clear
+		CMP !Freeram_SprTbl_MaxHPLow,x		;/HealedHPLow - MaxHPLow: carry is cleared if MaxHPLow is bigger
+		LDA $01					;\should the above carry is clear, subtract by an additional 1 (4-5 becomes 4-6; borrow)
+		SBC !Freeram_SprTbl_MaxHPHi,x		;/HealedHPHi - MaxHPHi: carry is cleared if MaxHPHi is bigger
+		BCC .ValidHP				;>if carry clear (below/equal to max HP), set current HP to healed HP amount.
+
+		.Maxed
+		LDA !Freeram_SprTbl_MaxHPLow,x		;\Set HP to max when carry is set (CurrentHP - MaxHP = positive value)
+		STA !Freeram_SprTbl_CurrHPLow,x		;|
+		LDA !Freeram_SprTbl_MaxHPHi,x		;|
+		STA !Freeram_SprTbl_CurrHPHi,x		;/
+		RTL
+
+		.ValidHP
+		LDA $00					;\Set HP to the amount of HP after healed.
+		STA !Freeram_SprTbl_CurrHPLow,x		;|
+		LDA $01					;|
+		STA !Freeram_SprTbl_CurrHPHi,x		;/
+	else ;>when using single-byte HP
+		LDA !Freeram_SprTbl_CurrHPLow,x		;\get HP after being healed
+		CLC					;|
+		ADC $00					;/
+		BCS .Maxed				;>in case HP goes past 255 when max HP is 255.
+		CMP !Freeram_SprTbl_MaxHPLow,x		;\if over the max, cap it also.
+		BCS .Maxed				;/
+		BRA .ValidHP
+		
+		.Maxed
+		LDA !Freeram_SprTbl_MaxHPLow,x
+		
+		.ValidHP
+		STA !Freeram_SprTbl_CurrHPLow,x
+	endif
+	RTL</pre></td></tr></table><br>
+Be careful that the code cannot distinguish between boss intro and healing, thus, the filling animation (and sound effect of intro)
+will play. To avoid this, simply <tt>JSL !DummyJSL_EnemyHP_RemoveRecordEffect</tt> to remove the record effect (the bar will instantly jump
+to the healed value, and cancels the transperent effect as well):
+<table><tr><td><pre>	if !Setting_SpriteHP_BarAnimation != 0
+		JSL !DummyJSL_EnemyHP_GetPercentHP	;\remove record effect (without the condition of not selecting this sprite)
+		LDA $00					;|
+		STA !Freeram_SprTbl_RecordEfft,x	;/
+	endif</pre></td></tr></table>
+
+Best you should add any indication that the enemy have recovered HP (such as a mushroom sound effect).

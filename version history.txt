@@ -1,0 +1,325 @@
+Number of items on main folder: 9
+
+Version history (finally, ordered from recent to oldest, version numbers are subversion and not decimal-fraction
+based (8.9, then 8.10 rather than 9.0)):
+---------------------------------------------------------------------------------------------------------------
+Thing(s) to fix:
+-no glitches found so far.
+
+10/23/2018 2.5.23 ANOTHER Graphical bar update
+ -Now using version 3.16 due to a forgotten SEP #$20 on the graphical bar routine when processing 8-bit values
+  as 16-bit.
+
+9/9/2018 2.5.22 graphical bar update
+ -Updated graphical bar routine to version 3.15.
+
+7/7/2018 2.5.21 note about smw's bosses and enemies
+ -Added a note about that SMW bosses and enemies are forced-8-bit, thus you cannot have their HP be over 255
+  despite setting "!Setting_SpriteHP_TwoByteHP" to 1.
+ -Added a hint at the readme about the 5 fireballs, if you want to replace the 5 fireballs HP system with a
+  code that does manuel damage much like the provided test sprite.
+
+5/30/2018 2.5.21 graphical bar readme update
+ -Updated the graphical bar readme.
+
+5/28/2018 2.5.21 (define rename, comments for each define properly spaced-indented)
+ -Renamed the define "!AvoidRoundingToZeroPercent" to "!Setting_EnemyHP_BarAvoidRoundToZero" to reduce the risk
+  of other ASM files changing it not-relating to enemy HP.
+ -Graphical bar defaults moved to "EnemyHP.asm" for better consistency.
+
+5/16/2018 2.5.20 (bugfix)
+ -Fix a bug that if the user sets the HP to 8-bit, and have the number of digits set to greater than or equal
+  to 3 and less than 5, would still include the digit protection, when it was supposed to be if the user picks
+  the number of digits is less than the number of digits a(n) 8/16-bit unsigned integer at max (3 digits; 255,
+  and 5 digits: 65535).
+
+5/13/2018 2.5.19 (updated resource)
+ -Updated the graphical bar routine to use version 3.14 due to a possible graphical bug that the empty section
+  can have a gap on it if the fill value is over 255 and less than 65535, as the number of full middle tiles
+  are expected to be less than 256.
+5/12/2018 2.5.18 (if statement fix)
+ -"Remove leading zeros" had a flaw that it is possible to have the code included even if the user disabled
+  displaying the numbers due to the or statement.
+ -under "elseif !Setting_EnemyHPAlignDigits == 1", the loop to remove garbage tiles no longer reloads A
+  every time it loops, since there's nothing affecting A, thus speeding up the cycle.
+
+5/6/2018 2.5.17 (more bugs to fix (and possibly a rejection again).)
+ -Glitches fixed:
+ --When disabling the HP meter for smw bosses, the big boo boss does a similar glitch previously (initial phase
+   glitch again). This is due to the restore code for "BigBooBossHitCountToHP", where the code "BEQ $2E" was
+   supposed to be "BNE $2E" (how did I got the branch backwards?).
+ --Also when disabling the HP meter for smw bosses, when wendy and lemmy is defeated, sprites don't disappear
+   in a puff of smoke. This is because I forgot to restore the hit counts (Number_Of_Hits-1, which is 2) needed
+   to make the sprites vanish.
+ --if you disable "!ShowHPOnSmwBosses" on the patch file itself, the HP bar still shows on smw bosses. I didn't
+   realized that was needed because I've forgotten that on uberasm on "GM14.asm" handles smw bosses. Therefore
+   I've moved all the user-based defines from the patch to "EnemyHPDefines/EnemyHP.asm" for also consistency.
+ --Fixed a potential bug on the record handling near that if the user made the bar fill upwards fast enough
+   and/or have the bar closer to 255 total pieces, could overflow and loops the record fill.
+ -The defines are now sorted by category (only for "EnemyHP.asm" as an update)
+ -Updated graphical bar information to the latest version the time of writing.
+ -Readme now includes a "new-tab link" for information about the graphical bar.
+ -Info about placing each tables is now more clear on how it is structured in the defines.
+ -Added a note for both "EnemyHP.asm" and "GraphicalBarDefines.asm" on the defines relating to the position of
+  the bar, the number of pieces in each 8x8 since they are in seperate files, and that the user might not know
+  that these options/settings exist.
+ -Realized that the rats tags, the labeling for start and end part of the code actually obtains the exact number
+  of bytes to protect (without the -1), due to the end label points to a byte address past the final byte. This
+  means the size WITH the -1 is needed.
+ -While using banks $10+ for rats tags is needed, however banks $80 is a mirror used for fastROM. Thus using
+  banks $80 to $8F is similar to $00-$0F that it was mirrored. Thus, it will include the rats tags ANYWHERE
+  above banks $10 when it should've treat $80+ the same as $00-$7F, where $00-$0F and $80-$8F is ONLY when
+  you place the rats tags.
+  Keep in mind that this is only the case if SA-1 is deactivated because fastROM doesn't exists on SA-1 and
+  such banks $80-$FF don't mirror banks $00-$3F.
+
+4/25/2018 2.5.16 (re-updated because rejected)
+ -Was removed because bugs reported by MarioFanGamer (ID:22951):
+ --Big boo boss, Lemmy and wendy are stuck in their initial phase, causing them to not work. This is due
+   to a mistake I made that I shouldn't use [JSL !DummyJSL_EnemyHP_DisplayHP] (which is for uberasm tool
+   to use exclusively) in a code labeled "<Boss Name>HitCountToHP:" just to show their HP, as the init
+   code in "GM14.asm" already does that. The subroutine "!DummyJSL_EnemyHP_DisplayHP" is actually a code
+   to be executed every frame that handles displaying on the HUD tiles and knowing what sprite slot number
+   ($00-$0B, normal ROM and $00-$15 for SA-1) the HP meter is on to switch to that. Sprites themselves on
+   the other hand only handles damage, healing, setting !Freeram_SprHPCurrSlot to its X index number, etc.
+   When sprite executes this said subroutine, it messes up their X index number, which means things that uses
+   the x index (such as read and write for sprite tables) would break, potentially corrupting other RAM address
+   and crashing the game. Uberasm already have an init code that automatically sets the HP bar to that enemy
+   (provided if they are in the player's screen as the level load).
+ --I have forgotten to add a restore code for bosses on Stomp damages for Ludwig, Morton, and Roy,
+   causing issues when patching with "!ShowHPOnSmwBosses" enabled, then patching again with
+   !ShowHPOnSmwBosses disabled.
+ --The dummy JSL/JML lacks a rats tags, causing many tools on SMWC to think it's a freespace code,
+   which can potentially overwrite this. It is fixed by if the user picks the location to place the JML
+   list in banks $10 or higher.
+ -The graphics files in "graphics" folder no longer have unfinished graphics (originally planned to have
+  Kirby & the amazing mirror health bar graphics), and now uses my graphical bar's graphics (minus the
+  double-bar graphics, they take too much space). They now include both the black background and the
+  transparent background.
+ -This readme also have the word "transparent" misspelled "transperent" fixed.
+ -Readme now includes if the user reinsert the patch with the defines changed, they have to update
+  all the existing copies of the defines in other ASM stuff to make sure no glitches happen.
+4/4/2018 2.5.15 (not really an update)
+ -Added a note about moving codes using dummy JSLs can be moved to the Shared Subroutines patch.
+ -Added info on what is a dummy JSL on the readme.
+4/3/2018 2.5.15
+ -Renamed "!ExcessiveDigitProtection" to "!Setting_EnemyHP_ExcessDigitProt" for better appropriate naming
+  convention since it is more of a setting than a number directly used in the code.
+4/1/2018 2.5.14
+ -Made the graphical bar defines use updated comment since the scratchram length wasn't noted on.
+3/30/2018 2.5.14
+ -Reworked the test sprite:
+ --Old routines (mainly for off-screen and graphics) have their spacing tab-based instead of space
+   character for better consistency.
+ --SA-1 fully tested and working.
+ -Fix the issue that the uberasm tool incsrc was outdated (was using the old seperate SA-1 version).
+ -Deleted the sprite tutorial txt version since the HTML version was added (redundant txt file).
+ -Readme changes:
+ --Added a note that if a user have copies of the defines, they must stay up to date on how to insert - step 1.
+ --Fix the typo and added more info mentioning about that tiles are constantly in use when no enemy is selected
+   in the readme.
+ --Toubleshooting mentions about that the bar cannot represent smaller increments of HP, and therefore, small
+   damage percentage as a pixel may not be represented.
+3/26/2018 2.5.13
+ -Fixed Akaginite's 32-bit/16-bit division routine that had a bug with the left shift overflow issue. This
+  causes glitches where if the maximum HP was a really high value, there is a higher risk that the amount
+  of fill glitches out and display 0 or 1 out of the maximum number of pieces in the bar.
+ -Fixed a glitch that when setting the maximum digits to 5 wasn't able to display 65535, since 10^5
+  would be 100000 ($186A0 in hex), which is bigger than 65535 ($FFFF), and thus checks if the actual
+  value is greater than or equal to $86A0 (34464 in decimal) to display "-"s.
+3/24/2018 2.5.12
+ -Added an option to make the bar display 1/maxpieces if you don't want the bar to display empty
+  when the enemy's HP isn't 0, but close.
+3/22/2018 2.5.11
+ -updated the in-ASM description for "DrawGraphicalBar" about the left/right end being disabled.
+3/13/2018 2.5.11
+ -Added a note about that some routines could be re-used for non-enemy HP related code in both the readme
+  and the main patch.
+ -Code that detect if the HP digits exceed the digit limit is now a subroutine, saving space.
+ -If the user sets "!Setting_SpriteHP_DisplayNumerical" to 0 (disable showing numbers at all), routines that
+  are only used for displaying numbers (such as "ConvertToDigits") are now no longer inserted into the ROM
+  since they're useless. 
+3/12/2018 2.5.10
+ -Fix the missing sfx when the test sprite takes damage via cape.
+ -">= 2" used in an if statement for "Setting_SpriteHP_DisplayNumerical" have been changed to "== 2" due to
+  being pointless that the user wouldn't use values above 2.
+ -Comments for define "!EnemyHPMaxDigits" and "!ExcessiveDigitProtection" now have a space after the first line
+  for consistency.
+ -Added comment on define "!Scratchram_CharacterTileTable" that it won't be used if
+  "!Setting_SpriteHP_DisplayNumerical" set to not display digits or set to right-aligned single number
+  (right-aligned showing only a current HP without displaying the max HP).
+ -Removed the giant masked koopa boss sprite because:
+ --Having duplicate sprites already hosted on SMWC makes it hard to update them. Therefore, it's best to have them
+   seperate to make it easy to handle them. Especially when adding "|!Base2" (which is "|!addr") and converting
+   sprite tables.
+ --Most of its code are completely outdated, combined with the reason above makes this a tedious task of updating.
+ -Fixed the font error on "simple_sprite_hitbox_test" on the <tt>..</tt> error.
+3/11/2018 2.5.9
+ -Added a right-aligned code (optional setting).
+ -Fixed the custom sprite tutorial mentioning wrong defines and instructions on how to get to use the HP meter.
+ -Status bar position for numerical is now a sa-1 hybrid to function with the super status bar patch.
+ -Fix a typo on "algh" on the align digits in EnemyHP.asm defines file.
+ -Fix the sprite test's bounce player back code as the position are unsigned, therefore causing wrong directions
+  to happen on the left edge of the stage when the screen border gets disabled.
+ -If a user sets the digits to be right-aligned and doesn't display max HP, it will treat as if the user set to
+  no alignments due to the fact that numbers are already right-aligned by default.
+ -Increment/decrement for bar animation can now increment/decrement multiple pieces (each increment in the bar)
+  per frame, allowing faster movement instead of at max, 1 piece per frame.
+ -Test sprite no longer plays the boss hit sfx when defeated on the last hit.
+ -Added a digit failsafe that should the code tries to place more digits than intended when set to aligned, would
+  display "-" across the character as an indication too many digits on the HP. This can be turned off.
+ -When sprites hit the test sprite, they get deflected like in the original game instead of X speed being reversed
+  direction with the same speed.
+3/10/2018 2.5.8
+ -You can now customize the maximum digits by changing "!EnemyHPMaxDigits".
+ -Added a define that allows you to change what tile it uses when the HP meter isn't present.
+ -Option to have left-aligned numerical HP display (this also removes leading spaces in the numbers)
+ -Fixed an error where "SwitchHPBar" routine that a define was no longer used.
+3/9/2018 2.5.7
+ -Changes to simple_sprite.asm:
+ --Added a healing code and some settings.
+ --Setting to enable or disable damaging the player on contact.
+ --In both the custom sprite tutorial and this code: included a small code that removes the record effect
+   that doesn't check if the HP bar is selecting that sprite.
+ --Can now display different 16x16 graphic when its HP gets low enough, just for display what you can do
+   when designing alternating graphics
+ -Fix the custom sprite tutorial on the healing routine when using the 2-byte HP setting HP to max should
+  255 be exceeded, due to not checking the carry AFTER working with the high bytes.
+ -Removed "freeram documentation.txt" since it is not needed; it is easy to find freeram anyway.
+3/8/2018 2.5.6
+ -Changes to simple_sprite.asm:
+ --stomping on the sprite have the option to bounce the player away like a chargin chuck.
+ --Defines updated to the newest version
+ --Flashing animation plays when hit with a kicked sprite
+ --Code updated due to change of patch:
+ ---It now checks if HP is 0 rather than using the carry flag of the outdated routine.
+ ---It now uses dummy JSLs to jump properly.
+
+3/1/2018 2.5.5
+ -If you disable the delay before the transparent section of the graphical bar shrinks to current HP %,
+  define "Freeram_SprTbl_RecordEffTmr" becomes undefined as an indication that they shouldn't use that
+  define if it isn't used.
+ -Incsrc to SubroutineLocations are now removed, due to me forgetting to update it.
+ -Also added a failsafe should the user put invalid options for the sprite table so that the locations
+  of such tables don't get screwed up.
+2/27/2018 2.5.4
+ -You can now disable the record effect altogether, as well as high bytes of HP, allowing you to
+  free up even more RAM.
+ -Merged the two defines version (normal and SA-1) because when adding new content to the defines,
+  I have to do that twice, for each version. Not only that, some other defines not freeram-related
+  are unnecessarily duplicated.
+ --This also means that the incsrc in the tutorial needs to be changed.
+2/26/2018 2.5.3
+ -Added an option to disable the record freeze timer by setting the delay to 0.
+ -Truly fix the bug with if you make the HP bar display on chargin chuck without instant-killing it,
+  then instant-kill it, its HP meter's record hang timer stays stuck and the transparent will not
+  shrink with the current HP as the sprite dies.
+ -Improved the sprite healing routine, by making use of CMP and SBC as to compare in 8-bit mode with
+  16-bit numbers (the carry flags helps), it now doesn't destruct values stored in $02-$03.
+2/25/2018 2.5.2
+ -HTML readme further progress:
+  -RAM usage table now included. Also added a relative address with Freeram_SpriteHPData.
+ -Fix a problem where if a sprite is instant-killed (chargin chuck), doesn't show 0HP.
+ -With Alcaro's idea, it's better to JSL to a JML listed area:
+  ;----code----;
+                  org $xxxxxx        ;>address to write
+    A+0           JML subroutine0    ;\these codes pointed by the JML.
+    A+4           JML subroutine1    ;|
+    A+8           JML subroutine2    ;/
+                  [...]
+  ;----end_code----;
+  Where A (on the left column) is the address relative to the label location. To call the subroutine, simply
+  do [JSL DummyJSL+0] (which calls "subroutine0"), [JSL DummyJSL+4] (which calls "subroutine0"), and so on.
+  Remember that JML opcode takes 4 bytes, thats why the address gets increased by 4 after every of those.
+ -Organized the definition files; some files with the same settings are better off inside EnemyHPDefines,
+  but not inside the foldes inside EnemyHPDefines.
+ -Last minute change: optimize the dummy JSL -> JML due to the fact that you don't need to jump back to
+  a RTL. The only crash that happens is if you JSR to a subroutine code, JML to a different bank, then
+  RTS. Even though JSR -> RTS is valid, but jumping to a different bank and ending there does not update
+  the bank, therefore, it jumps to a correct page with the wrong bank, crashing the game.
+2/24/2018 2.5.1
+ -Reworked the routine, and also remove the instant-kill to display 0HP when a chargin chuck gets hit by
+  a shell, bounce block, and cape. This is because the chuck uses a tweaker used by all sprites that
+  handle interactions that would instant kill them. If you wanted to have a chargin chuck (or any vanilla
+  sprite) that display HP, I recommend using smwc's sprite disassembly on the sprite section, and edit their
+  code AND the tweaker setting (disable 5 hits kill from fireballs and interaction with other sprites). The
+  codes that handle sprites killed by kicked sprites are address $01A66B and $01A5E3.
+9/5/2017 2.5
+ -Optimized the damage routine, thanks to how the carry works with addition and subtraction, it made it easy
+  to check if the HP would subtract below 0 to prevent the underflow (only applies to using the subroutine
+  designed for custom sprites) without the need for CMP.
+
+9/4/2017 2.4
+ -Fix a bug with the ludwig boss (or possibly along with roy and morton) where the boss can have its HP
+  underflow to 255 by having the boss be "stunned" in midair (jump on it on 1/2 way of its jump animation,
+  causing it to skip its shell slide attack and do his fireball instead), and shooting 2 fireballs at the end
+  of boss' stunned animation, causing it to absorb 2 fireballs and decreases its HP below 0.
+
+ -Allowed customizable damage for all bosses through defines.
+
+8/26/2017
+ -Reworded about the delete-spawn on same slot bug.
+ -Fix a grammer issue: "the 8x8 space" should be "the 8x8 spaces".
+
+8/14/2017 2.3
+ -Fix an error on that the sa-1 address $41A000-$41C7FF, because they are used for BW-RAM Plus. The default
+  RAM address should work with the player HP patch (make sure you are having the player HP meter's drawbar
+  routine instead of the sprite's; since you do not want the meter on the OW to be messed up). I also forgot
+  to double check all the RAM address used here to be correct (which is now fixed).
+
+ -Improved the indenting on this readme.
+
+ -Added a note that smw's bosses may fail to show the HP bar on the inital of the fight and how to avoid that.
+
+ -Graphical Bar's !ScratchRam_Tiles for the minimum number of RAM used is actually 4 bytes; 2 for quantity and
+  the other is max quantity.
+
+8/10/2017
+ -Noted a possible bug where if a sprite dies and a newly spawn sprite occupies the same slot as the dead
+  within the sane frane, can make the HP meter transfer to that new sprite. This can easily be fixed by editing
+  a sprite code to hide the HP bar if $14C8 is #$00 in the sprite code.
+
+8/9/2017 2.2
+ -Sa-1 tag was removed due to sa-1 hybrid patches required to have auto-converted freeram addresses. Meaning
+  that because sa-1 code cannot access wram, you have to edit all the freeram to use banks $40/41, it doesn't
+  matter if the instructions says you have to, patches should have auto convert SA-1 for freeram.
+
+  I have included a folder that acts as a "replacer" for those defines. Use the folder inside that folder
+  for the freeram stuff.
+
+ -Realized that selecting text may differ depending on what windows 10+.
+
+ -Added a forgotten code that the HP bar didn't show up on init for the giant masked koopa boss.
+
+7/4/2017
+ -Forgot and now updated the newly graphical bar readme and put those two files in one folder for organizing.
+6/19/2017 - 2.1
+ -Updated the drawbar routine (better scratch RAM usage) and fix a crash bug with the calculate percentage.
+ -Added an option to disable displaying a HP bar on chucks if you wanted it to be boss-only.
+ -Made the damage indicator shrink faster after being frozen to avoid "drag" where it takes forever for
+  the bar to reach the "current HP %"
+3/10/2017 - 2.0
+ -Added HP conversion on CustomSpritesReadme.txt in case if the sprite you are using have HP in different
+ format.
+
+ -Fix a problem with intro HP (filling up) that plays SFX even when paused.
+
+3/8/2017
+ -Included the number of freeram bytes !Freeram_SpriteHPData uses.
+
+1/2/2017
+ -Rename the defines to reduce the chance of other code(s) using what this patch is using (such as sprite slots
+ are now named "!Freeram_SprHPCurrSlot"). Note that the Graphical Bar asm code is not renamed. If you ecounter
+ werid bugs and notice that the defines are the same on both different patches, either rename one of them
+ (other patch recommended, as there are a lot of defines in this pacakge to rename, unless you use notepadd++
+ and CTRL+H and replace in all documents to update all at once), or simply incsrc the defines again to get the
+ settings back.
+
+ -Also added a define option to to not have filling sfx when the fill goes upward.
+ -Added an option in the defines to allow customizable sfx (when the bar is filling) and the speed that the
+ fill moves.
+ -Added an in-depth discription when you change code that would move the JSL subroutine to another area.
+ -Fix a broken sentence in CustomSpritesReadme.txt about tweaker saying about why I'm not using it.
+
+12/07/2016
+ -First release
