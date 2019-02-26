@@ -66,18 +66,18 @@ print "" ;>This is a linebreak
 print "What sprite slot should the meter display.........$", hex(!Freeram_SprHPCurrSlot)
 print ""
 print "Sprite table size: $", hex(!sprite_slots), ", (", dec(!sprite_slots), " in decimal)"
-print "Sprite's current HP (low byte)....................$", hex(!Freeram_SprTbl_CurrHPLow)
+print "Sprite's current HP (low byte)....................$", hex(!Freeram_SprTbl_CurrHPLow), " to $", hex(!Freeram_SprTbl_CurrHPLow+(!sprite_slots-1))
 if !Setting_SpriteHP_TwoByteHP != 0
-	print "Sprite's current HP (high byte)...................$", hex(!Freeram_SprTbl_CurrHPHi)
+	print "Sprite's current HP (high byte)...................$", hex(!Freeram_SprTbl_CurrHPHi), " to $", hex(!Freeram_SprTbl_CurrHPLow+(!sprite_slots-1))
 endif
-print "Sprite's max HP (low byte)........................$", hex(!Freeram_SprTbl_MaxHPLow)
+print "Sprite's max HP (low byte)........................$", hex(!Freeram_SprTbl_MaxHPLow), " to $", hex(!Freeram_SprTbl_CurrHPLow+(!sprite_slots-1))
 if !Setting_SpriteHP_TwoByteHP != 0
-	print "Sprite's max HP (high byte).......................$", hex(!Freeram_SprTbl_MaxHPHi)
+	print "Sprite's max HP (high byte).......................$", hex(!Freeram_SprTbl_MaxHPHi), " to $", hex(!Freeram_SprTbl_CurrHPLow+(!sprite_slots-1))
 endif
 if !Setting_SpriteHP_BarAnimation != 0
-	print "Bar record effect (damage indicator)..............$", hex(!Freeram_SprTbl_RecordEfft)
+	print "Bar record effect (damage indicator)..............$", hex(!Freeram_SprTbl_RecordEfft), " to $", hex(!Freeram_SprTbl_CurrHPLow+(!sprite_slots-1))
 	if !EnemyHPBarRecordDelay != 0
-		print "Bar record effect freeze (timer before shrinking).$", hex(!Freeram_SprTbl_RecordEffTmr)
+		print "Bar record effect freeze (timer before shrinking).$", hex(!Freeram_SprTbl_RecordEffTmr), " to $", hex(!Freeram_SprTbl_CurrHPLow+(!sprite_slots-1))
 	endif
 endif
 print ""
