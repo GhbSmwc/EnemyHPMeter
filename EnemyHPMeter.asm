@@ -68,16 +68,16 @@ print ""
 print "Sprite table size: $", hex(!sprite_slots), ", (", dec(!sprite_slots), " in decimal)"
 print "Sprite's current HP (low byte)....................$", hex(!Freeram_SprTbl_CurrHPLow), " to $", hex(!Freeram_SprTbl_CurrHPLow+(!sprite_slots-1))
 if !Setting_SpriteHP_TwoByteHP != 0
-	print "Sprite's current HP (high byte)...................$", hex(!Freeram_SprTbl_CurrHPHi), " to $", hex(!Freeram_SprTbl_CurrHPLow+(!sprite_slots-1))
+	print "Sprite's current HP (high byte)...................$", hex(!Freeram_SprTbl_CurrHPHi), " to $", hex(!Freeram_SprTbl_CurrHPHi+(!sprite_slots-1))
 endif
-print "Sprite's max HP (low byte)........................$", hex(!Freeram_SprTbl_MaxHPLow), " to $", hex(!Freeram_SprTbl_CurrHPLow+(!sprite_slots-1))
+print "Sprite's max HP (low byte)........................$", hex(!Freeram_SprTbl_MaxHPLow), " to $", hex(!Freeram_SprTbl_MaxHPLow+(!sprite_slots-1))
 if !Setting_SpriteHP_TwoByteHP != 0
-	print "Sprite's max HP (high byte).......................$", hex(!Freeram_SprTbl_MaxHPHi), " to $", hex(!Freeram_SprTbl_CurrHPLow+(!sprite_slots-1))
+	print "Sprite's max HP (high byte).......................$", hex(!Freeram_SprTbl_MaxHPHi), " to $", hex(!Freeram_SprTbl_MaxHPHi+(!sprite_slots-1))
 endif
 if !Setting_SpriteHP_BarAnimation != 0
-	print "Bar record effect (damage indicator)..............$", hex(!Freeram_SprTbl_RecordEfft), " to $", hex(!Freeram_SprTbl_CurrHPLow+(!sprite_slots-1))
+	print "Bar record effect (damage indicator)..............$", hex(!Freeram_SprTbl_RecordEfft), " to $", hex(!Freeram_SprTbl_RecordEfft+(!sprite_slots-1))
 	if !EnemyHPBarRecordDelay != 0
-		print "Bar record effect freeze (timer before shrinking).$", hex(!Freeram_SprTbl_RecordEffTmr), " to $", hex(!Freeram_SprTbl_CurrHPLow+(!sprite_slots-1))
+		print "Bar record effect freeze (timer before shrinking).$", hex(!Freeram_SprTbl_RecordEffTmr), " to $", hex(!Freeram_SprTbl_RecordEffTmr+(!sprite_slots-1))
 	endif
 endif
 print ""
